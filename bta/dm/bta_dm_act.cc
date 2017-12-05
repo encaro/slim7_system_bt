@@ -38,6 +38,7 @@
 #include "bta_dm_co.h"
 #include "bta_dm_int.h"
 #include "bta_sys.h"
+#include "btcore/include/bdaddr.h"
 #include "btm_api.h"
 #include "btm_int.h"
 #include "btu.h"
@@ -665,7 +666,9 @@ void bta_dm_process_remove_device(BD_ADDR bd_addr) {
   BTM_SecDeleteDevice(bd_addr);
 
   /* remove all cached GATT information */
-  BTA_GATTC_Refresh(bd_addr);
+  bt_bdaddr_t tmp_addr;
+  memcpy(tmp_addr.address, bd_addr, BD_ADDR_LEN);
+  BTA_GATTC_Refresh(tmp_addr);
 
   if (bta_dm_cb.p_sec_cback) {
     tBTA_DM_SEC sec_event;
@@ -848,7 +851,9 @@ void bta_dm_close_acl(tBTA_DM_MSG* p_data) {
     /* need to remove all pending background connection if any */
     BTA_GATTC_CancelOpen(0, p_remove_acl->bd_addr, false);
     /* remove all cached GATT information */
-    BTA_GATTC_Refresh(p_remove_acl->bd_addr);
+    bt_bdaddr_t tmp_addr;
+    memcpy(tmp_addr.address, p_remove_acl->bd_addr, BD_ADDR_LEN);
+    BTA_GATTC_Refresh(tmp_addr);
   }
   /* otherwise, no action needed */
 }
@@ -2607,9 +2612,14 @@ static uint8_t bta_dm_authentication_complete_cback(
     if (bta_dm_cb.p_sec_cback)
       bta_dm_cb.p_sec_cback(BTA_DM_AUTH_CMPL_EVT, &sec_event);
 
-    if (result != HCI_ERR_LMP_RESPONSE_TIMEOUT &&
-        result != HCI_ERR_PAGE_TIMEOUT &&
-        result != HCI_ERR_CONN_FAILED_ESTABLISHMENT) {
+    if (result == HCI_ERR_AUTH_FAILURE || result == HCI_ERR_KEY_MISSING ||
+        result == HCI_ERR_HOST_REJECT_SECURITY ||
+        result == HCI_ERR_ENCRY_MODE_NOT_ACCEPTABLE) {
+      bdstr_t bd_addr_str;
+      APPL_TRACE_WARNING("%s deleting %s - result: 0x%02x", __func__,
+                         bdaddr_to_string((bt_bdaddr_t*)bd_addr, bd_addr_str,
+                                          sizeof(bd_addr_str)),
+                         result);
       bta_dm_remove_sec_dev_entry(bd_addr);
     }
   }
@@ -3110,7 +3120,9 @@ void bta_dm_acl_change(tBTA_DM_MSG* p_data) {
       /* need to remove all pending background connection */
       BTA_GATTC_CancelOpen(0, p_bda, false);
       /* remove all cached GATT information */
-      BTA_GATTC_Refresh(p_bda);
+      bt_bdaddr_t tmp_addr;
+      memcpy(tmp_addr.address, p_bda, BD_ADDR_LEN);
+      BTA_GATTC_Refresh(tmp_addr);
     }
 
     bdcpy(conn.link_down.bd_addr, p_bda);
@@ -3283,7 +3295,9 @@ static void bta_dm_remove_sec_dev_entry(BD_ADDR remote_bd_addr) {
     /* need to remove all pending background connection */
     BTA_GATTC_CancelOpen(0, remote_bd_addr, false);
     /* remove all cached GATT information */
-    BTA_GATTC_Refresh(remote_bd_addr);
+    bt_bdaddr_t tmp_addr;
+    memcpy(tmp_addr.address, remote_bd_addr, BD_ADDR_LEN);
+    BTA_GATTC_Refresh(tmp_addr);
   }
 }
 

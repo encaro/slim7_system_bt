@@ -666,7 +666,7 @@ static void btif_in_hf_generic_evt(uint16_t event, char* p_param) {
 static bool inband_ringing_property_enabled() {
   char inband_ringing_flag[PROPERTY_VALUE_MAX] = {0};
   osi_property_get("persist.bluetooth.enableinbandringing", inband_ringing_flag,
-                   "false");
+                   "true");
   if (strncmp(inband_ringing_flag, "true", 4) == 0) {
     BTIF_TRACE_DEBUG("%s: In-band ringing enabled by property", __func__);
     return true;
@@ -1493,6 +1493,7 @@ bool btif_hf_call_terminated_recently() {
 static void cleanup(void) {
   BTIF_TRACE_EVENT("%s", __func__);
 
+  btif_queue_cleanup(UUID_SERVCLASS_AG_HANDSFREE);
   if (bt_hf_callbacks) {
 #if (defined(BTIF_HF_SERVICES) && (BTIF_HF_SERVICES & BTA_HFP_SERVICE_MASK))
     btif_disable_service(BTA_HFP_SERVICE_ID);
